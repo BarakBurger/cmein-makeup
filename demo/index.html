@@ -88,7 +88,16 @@
     Source: <a href="https://github.com/BarakBurger/cmein-makeup">github.com/BarakBurger/cmein-makeup</a>.</footer>
 </main>
 <script type="module">
-  import { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, LOOK_PRESETS } from '../dist/index.js';
+  // Loaded dynamically so a missing build is a message on the page, not a silent dead button.
+  let lib;
+  try {
+    lib = await import('../dist/index.js');
+  } catch (e) {
+    document.getElementById('status').textContent =
+      'The library is not built yet. Run npm install in the repository folder, then reload this page.';
+    throw e;
+  }
+  const { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, LOOK_PRESETS } = lib;
 
   const $ = id => document.getElementById(id);
   const out = $('out'), status = $('status'), grid = $('looks');
@@ -124,8 +133,15 @@
     if (!file) return;
     $('stage').classList.remove('on');
     status.textContent = 'Finding the face…';
-    photo = await createImageBitmap(file);
-    const found = await detectFace(photo);
+    let found;
+    try {
+      photo = await createImageBitmap(file);
+      found = await detectFace(photo);
+    } catch (e) {
+      status.textContent = 'Could not read that photo or load the face model. Check the connection and try another photo.';
+      console.error(e);
+      return;
+    }
     if (!found.ok) {
       status.textContent = { none: 'No face found in this photo.', several: 'Two faces of the same size: use a photo of one person.',
         small: 'The face is too small in this photo.' }[found.reason];
