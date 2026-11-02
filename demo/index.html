@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cmein-makeup demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0e0b12; --card: #211a29; --surface: #2d2437; --border: #3e3349; --border-strong: #7a6a8c;
+      --text: #faf7f5; --muted: #b8adbd; --primary: #8b3df5; --primary-text: #c7a6ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 1080px; margin: 0 auto; padding: 48px 16px 64px; }
+    .eyebrow { color: var(--primary-text); font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 8px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; }
+    .lede { color: var(--muted); max-width: 640px; margin: 0 0 28px; font-size: 18px; }
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 24px; }
+    .drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 200px;
+      border: 1.5px dashed var(--border-strong); border-radius: 14px; cursor: pointer; text-align: center; padding: 24px; }
+    .drop:hover, .drop.over { background: var(--surface); }
+    .drop:focus-within { outline: 3px solid var(--primary-text); outline-offset: 3px; }
+    .drop b { font-size: 18px; }
+    .drop span { color: var(--muted); font-size: 15px; }
+    .drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .facts { list-style: none; padding: 0; margin: 16px 0 0; color: var(--muted); font-size: 15px; }
+    .facts li::before { content: "✓"; color: var(--primary-text); margin-right: 8px; }
+    #stage { display: none; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+    #stage.on { display: flex; }
+    canvas { max-width: 100%; height: auto; border-radius: 14px; display: block; flex: 1 1 360px; min-width: 0; max-height: 70vh; object-fit: contain; }
+    .side { flex: 0 1 300px; }
+    .side h2 { font-size: 20px; margin: 0 0 4px; }
+    .side p { color: var(--muted); margin: 0 0 12px; }
+    .btn { min-height: 44px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface);
+      color: var(--text); font: inherit; cursor: pointer; }
+    .btn:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; }
+    #status { min-height: 1.5em; color: var(--muted); margin: 12px 0 0; }
+    h2.section { font-size: 24px; margin: 0 0 8px; }
+    .panel > p.muted { color: var(--muted); margin: 0 0 20px; }
+    .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+    .look { all: unset; display: block; cursor: pointer; border-radius: 14px; padding: 6px; }
+    .look img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 12px; display: block; }
+    .look b { display: block; margin-top: 8px; font-size: 16px; }
+    .look small { display: block; color: var(--muted); font-size: 14px; line-height: 1.4; }
+    .look:hover { background: var(--surface); }
+    .look:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; }
+    .look[aria-pressed="true"] { background: var(--surface); box-shadow: inset 0 0 0 2px var(--primary); }
+    footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
+    footer a { color: var(--primary-text); }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Makeup try-on · demo</p>
+  <h1>Try makeup on your own photo</h1>
+  <p class="lede">Upload a photo and try lip colour, eyeshadow, lashes, foundation, contour and blush on your real face.
+    The skin tone is matched from the photo, and nothing leaves your device.</p>
+
+  <section class="panel" aria-label="Your photo">
+    <label class="drop" id="drop">
+      <b>Choose a photo</b>
+      <span>One face, looking toward the camera. Or drop it here.</span>
+      <input id="file" type="file" accept="image/*">
+    </label>
+    <ul class="facts">
+      <li>Your photo never leaves your device</li>
+      <li>Only the face model is downloaded, once, from Google's MediaPipe</li>
+    </ul>
+    <p id="status" role="status" aria-live="polite"></p>
+    <div id="stage">
+      <canvas id="out" aria-label="Your photo with the chosen look"></canvas>
+      <div class="side">
+        <h2 id="lookName">Original</h2>
+        <p id="lookNote">Pick a look below.</p>
+        <button type="button" class="btn" id="original">Show the original</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="looks-title">
+    <h2 class="section" id="looks-title">A look for the day you are having</h2>
+    <p class="muted" id="looksIntro"></p>
+    <ul class="grid" id="looks"></ul>
+  </section>
+
+  <footer>The engine behind <a href="https://cmein.com/makeup">cmein.com/makeup</a>.
+    Source: <a href="https://github.com/BarakBurger/cmein-makeup">github.com/BarakBurger/cmein-makeup</a>.</footer>
+</main>
+<script type="module">
+  import { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, LOOK_PRESETS } from '../dist/index.js';
+
+  const $ = id => document.getElementById(id);
+  const out = $('out'), status = $('status'), grid = $('looks');
+  let photo = null, points = null, base = null, current = -1;
+
+  const slug = name => name.toLowerCase().replace(/ /g, '-');
+  $('looksIntro').textContent = `${LOOK_PRESETS.length} ready-made looks, from a job interview to a wedding. ` +
+    'Choose a photo above, then tap a look to see it on your own face.';
+
+  // The same cards as cmein.com/makeup: the look on our model, its name and what it is for.
+  LOOK_PRESETS.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<button type="button" class="look" aria-pressed="false" data-i="${i}">
+      <img src="../.github/assets/looks/${slug(p.name)}.jpg" width="288" height="360" loading="lazy" alt="">
+      <b></b><small></small></button>`;
+    li.querySelector('b').textContent = p.name;
+    li.querySelector('small').textContent = p.note;
+    grid.append(li);
+  });
+
+  function show(i) {
+    current = i;
+    const k = Math.min(1, 1400 / Math.max(photo.width, photo.height));
+    out.width = Math.round(photo.width * k); out.height = Math.round(photo.height * k);
+    out.getContext('2d').drawImage(photo, 0, 0, out.width, out.height);
+    if (i >= 0) renderLook(out, points, LOOK_PRESETS[i].make(base));
+    $('lookName').textContent = i >= 0 ? LOOK_PRESETS[i].name : 'Original';
+    $('lookNote').textContent = i >= 0 ? LOOK_PRESETS[i].note : 'Pick a look below.';
+    for (const b of grid.querySelectorAll('.look')) b.setAttribute('aria-pressed', String(Number(b.dataset.i) === i));
+  }
+
+  async function load(file) {
+    if (!file) return;
+    $('stage').classList.remove('on');
+    status.textContent = 'Finding the face…';
+    photo = await createImageBitmap(file);
+    const found = await detectFace(photo);
+    if (!found.ok) {
+      status.textContent = { none: 'No face found in this photo.', several: 'Two faces of the same size: use a photo of one person.',
+        small: 'The face is too small in this photo.' }[found.reason];
+      return;
+    }
+    points = found.points;
+    base = defaultLook(detectSkinTone(photo, points).index, detectLipColor(photo, points));
+    status.textContent = 'Face found. Tap a look below.';
+    $('stage').classList.add('on');
+    show(current);
+  }
+
+  $('file').addEventListener('change', e => load(e.target.files[0]));
+  const drop = $('drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); load(e.dataTransfer.files[0]); });
+  $('original').addEventListener('click', () => photo && show(-1));
+  grid.addEventListener('click', e => {
+    const b = e.target.closest('.look'); if (!b) return;
+    const i = Number(b.dataset.i);
+    if (!photo) { status.textContent = 'Choose a photo first, then tap a look.'; current = i; return; }
+    show(i); $('stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>
+</body>
+</html>

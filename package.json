@@ -1,0 +1,45 @@
+{
+  "name": "cmein-makeup",
+  "version": "1.0.0",
+  "description": "On-device makeup try-on for the web: finds the face with MediaPipe, reads the skin tone, and paints lips, eyes, lashes, skin, contour and blush over the original pixels. Nothing is uploaded and the face is never reshaped.",
+  "license": "MIT",
+  "homepage": "https://cmein.com/makeup",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BarakBurger/cmein-makeup.git"
+  },
+  "keywords": [
+    "makeup",
+    "virtual-makeup",
+    "virtual-try-on",
+    "makeup-try-on",
+    "mediapipe",
+    "face-landmarks",
+    "face-mesh",
+    "canvas",
+    "on-device",
+    "privacy",
+    "beauty",
+    "browser"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
