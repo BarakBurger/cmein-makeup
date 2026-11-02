@@ -3,288 +3,604 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>cmein-makeup demo</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0e0b12; --card: #211a29; --surface: #2d2437; --border: #3e3349; --border-strong: #7a6a8c;
-      --text: #faf7f5; --muted: #b8adbd; --primary: #8b3df5; --primary-text: #c7a6ff;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-    main { max-width: 1080px; margin: 0 auto; padding: 48px 16px 64px; }
-    .eyebrow { color: var(--primary-text); font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 8px; }
-    h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; }
-    .lede { color: var(--muted); max-width: 640px; margin: 0 0 28px; font-size: 18px; }
-    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 24px; }
-    .drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 200px;
-      border: 1.5px dashed var(--border-strong); border-radius: 14px; cursor: pointer; text-align: center; padding: 24px; }
-    .drop:hover, .drop.over { background: var(--surface); }
-    .drop:focus-within { outline: 3px solid var(--primary-text); outline-offset: 3px; }
-    .drop b { font-size: 18px; }
-    .drop span { color: var(--muted); font-size: 15px; }
-    .drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-    .facts { list-style: none; padding: 0; margin: 16px 0 0; color: var(--muted); font-size: 15px; }
-    .facts li::before { content: "✓"; color: var(--primary-text); margin-right: 8px; }
-    #stage { display: none; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
-    .side { max-height: none; }
-    #stage.on { display: flex; }
-    canvas { max-width: 100%; height: auto; border-radius: 14px; display: block; flex: 1 1 360px; min-width: 0; max-height: 70vh; object-fit: contain; }
-    .side { flex: 0 1 300px; }
-    .side h2 { font-size: 20px; margin: 0 0 4px; }
-    .side p { color: var(--muted); margin: 0 0 12px; }
-    .btn { min-height: 44px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface);
-      color: var(--text); font: inherit; cursor: pointer; }
-    .btn:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; }
-    #status { min-height: 1.5em; color: var(--muted); margin: 12px 0 0; }
-    h2.section { font-size: 24px; margin: 0 0 8px; }
-    .panel > p.muted { color: var(--muted); margin: 0 0 20px; }
-    .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
-    .look { all: unset; display: block; cursor: pointer; border-radius: 14px; padding: 6px; }
-    .look img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 12px; display: block; }
-    .look b { display: block; margin-top: 8px; font-size: 16px; }
-    .look small { display: block; color: var(--muted); font-size: 14px; line-height: 1.4; }
-    .look:hover { background: var(--surface); }
-    .look:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; }
-    .look[aria-pressed="true"] { background: var(--surface); box-shadow: inset 0 0 0 2px var(--primary); }
-    .controls { margin-top: 16px; display: grid; gap: 8px; }
-    details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0 12px; }
-    summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
-    summary:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; border-radius: 8px; }
-    details[open] { padding-bottom: 12px; }
-    .ctl { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; font-size: 15px; }
-    .ctl input[type=range] { flex: 1; accent-color: var(--primary); min-height: 32px; }
-    .ctl input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--primary); }
-    .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 999px; overflow: hidden; }
-    .seg button { all: unset; padding: 6px 12px; cursor: pointer; font-size: 14px; }
-    .seg button[aria-pressed="true"] { background: var(--primary); }
-    .seg button:focus-visible { outline: 2px solid var(--primary-text); outline-offset: -2px; }
-    .swatches { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-    .swatch { all: unset; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
-    .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary-text); }
-    .swatch:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 3px; }
-    .label { color: var(--muted); font-size: 13px; margin-top: 6px; }
-    footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
-    footer a { color: var(--primary-text); }
-  </style>
+  <title>Makeup try-on demo · cmein-makeup</title>
+  <link rel="stylesheet" href="makeup.css">
 </head>
 <body>
-<main>
-  <p class="eyebrow">Makeup try-on · demo</p>
-  <h1>Try makeup on your own photo</h1>
-  <p class="lede">Upload a photo and try lip colour, eyeshadow, lashes, foundation, contour and blush on your real face.
-    The skin tone is matched from the photo, and nothing leaves your device.</p>
+<!--
+  The cmein.com/makeup try-on, ported to one page of plain JavaScript on top of this library: the
+  same stages (choose a photo, getting ready, skin tone, the editor, the finished look), the same
+  markup and class names, and the site's own stylesheets. The AI version is not here; the finished
+  look links to it on cmein.com.
+-->
+<div class="et">
+  <header class="et-hero">
+    <p class="et-eyebrow"><span data-icon="palette" data-size="14"></span> Makeup try-on · Free</p>
+    <h1>Try makeup on your own photo</h1>
+    <p class="et-lede">Upload a photo and try lip colour, eyeshadow, lashes, foundation, contour and blush on your real
+      face. We match your skin tone from the photo, you choose every shade, and nothing leaves your device.</p>
+  </header>
 
-  <section class="panel" aria-label="Your photo">
-    <label class="drop" id="drop">
-      <b>Choose a photo</b>
-      <span>One face, looking toward the camera. Or drop it here.</span>
-      <input id="file" type="file" accept="image/*">
-    </label>
-    <ul class="facts">
-      <li>Your photo never leaves your device</li>
-      <li>Only the face model is downloaded, once, from Google's MediaPipe</li>
-    </ul>
-    <p id="status" role="status" aria-live="polite"></p>
-    <div id="stage">
-      <canvas id="out" aria-label="Your photo with the chosen look"></canvas>
-      <div class="side">
-        <h2 id="lookName">Original</h2>
-        <p id="lookNote">Pick a look below, or adjust anything by hand.</p>
-        <button type="button" class="btn" id="original">Show the original</button>
-        <div class="controls" id="controls" aria-label="Adjust the look by hand"></div>
+  <input id="file" class="et-file" type="file" accept="image/*">
+  <input id="selfie" class="et-file" type="file" accept="image/*" capture="user">
+
+  <div id="app"></div>
+
+  <section class="et-panel" aria-labelledby="mk-occasions-title">
+    <h2 id="mk-occasions-title">A look for the day you are having</h2>
+    <p class="mk-muted" id="gallery-intro"></p>
+    <ul class="mk-gallery" id="gallery"></ul>
+  </section>
+
+  <p class="demo-foot">This page is the demo of
+    <a href="https://github.com/BarakBurger/cmein-makeup">cmein-makeup</a>, the engine behind
+    <a href="https://cmein.com/makeup">cmein.com/makeup</a>.</p>
+</div>
+
+<script type="module">
+import { icon } from './icons.js';
+
+const $ = id => document.getElementById(id);
+const app = $('app');
+document.querySelectorAll('[data-icon]').forEach(el => {
+  el.outerHTML = icon(el.dataset.icon, Number(el.dataset.size || 16));
+});
+
+// Loaded dynamically so a missing build is a message on the page, not a silent dead button.
+let lib;
+try {
+  lib = await import('../dist/index.js');
+} catch (e) {
+  app.innerHTML = `<section class="et-panel"><p class="et-error" role="alert">${icon('triangle-alert')}
+    The library is not built yet. Run npm install in the repository folder, then reload this page.</p></section>`;
+  throw e;
+}
+const { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, loadLandmarker, toneShades,
+  SKIN_TONES, LOOK_PRESETS } = lib;
+
+// ---------------------------------------------------------------------------------------------
+// The same constants as the page on cmein.com
+
+const PREVIEW_MAX = 1400;
+const RAIL = [
+  { id: 'looks', label: 'Looks', icon: 'sparkles' }, { id: 'lips', label: 'Lips', icon: 'smile' },
+  { id: 'eyes', label: 'Eyes', icon: 'eye' }, { id: 'lashes', label: 'Lashes and brows', icon: 'brush' },
+  { id: 'skin', label: 'Skin', icon: 'droplet' }, { id: 'sculpt', label: 'Sculpt', icon: 'contrast' },
+  { id: 'glow', label: 'Blush and glow', icon: 'sun' },
+];
+const DIALS = RAIL.filter(r => r.id !== 'looks');
+const LIP_NAMED = [['#C98A80', 'Nude rose'], ['#B8656A', 'Dusty rose'], ['#B85F55', 'Terracotta rose'], ['#E07A5F', 'Coral'],
+  ['#E9967A', 'Peach'], ['#A86B4F', 'Caramel'], ['#9C6B7E', 'Mauve'], ['#8E3B5A', 'Berry'], ['#9E3A32', 'Brick'], ['#A4161A', 'Cherry'],
+  ['#6B2D4A', 'Plum'], ['#6E3B2E', 'Cocoa'], ['#D4A5A5', 'Soft pink'], ['#4A1C2C', 'Wine']];
+const EYE_NAMED = [['#B79A86', 'Taupe'], ['#8A5A3C', 'Bronze'], ['#D8BFA4', 'Champagne'], ['#C08A6A', 'Copper sand'],
+  ['#7A5C8E', 'Plum'], ['#6B6A3E', 'Olive'], ['#2F3E5C', 'Navy'], ['#B76E5A', 'Rose gold'], ['#3A2A22', 'Espresso'], ['#8C7B8F', 'Lilac grey'],
+  ['#5E5E66', 'Smoke'], ['#A0522D', 'Sienna']];
+const BLUSH_NAMED = [['#F4A6A0', 'Soft pink'], ['#E08A6E', 'Peach'], ['#E9967A', 'Apricot'], ['#D46A6A', 'Rose'],
+  ['#C2566B', 'Berry'], ['#B5655A', 'Terracotta'], ['#A44A3F', 'Brick'], ['#8E3B46', 'Wine'], ['#D98C7A', 'Coral'], ['#F2B5A0', 'Shell'],
+  ['#C47A5A', 'Bronze'], ['#7E2F3B', 'Plum']];
+const MASCARA_NAMED = [['#111111', 'Black'], ['#1E1714', 'Brown black'], ['#3B2A22', 'Brown'], ['#2F3E5C', 'Navy']];
+const BROW_NAMED = [['#C9A675', 'Blonde'], ['#A47C52', 'Dark blonde'], ['#8C6A47', 'Light brown'], ['#6B4A33', 'Brown'],
+  ['#3B2A22', 'Dark brown'], ['#22201F', 'Black'], ['#7A7A7A', 'Grey'], ['#8B3A1E', 'Auburn']];
+const NO_FACE = {
+  none: 'We could not find a face in this photo.',
+  several: 'There is more than one face in this photo.',
+  small: 'The face is too small in this photo to work on.',
+  load: 'The face finder could not load. Check your connection and try again.',
+};
+const ZOOM_POINTS = {
+  lips: [61, 291, 0, 17, 37, 267, 84, 314],
+  eyes: [33, 133, 263, 362, 70, 300, 105, 334, 145, 374],
+  lashes: [33, 133, 263, 362, 70, 300, 105, 334, 145, 374],
+  skin: [10, 152, 234, 454], sculpt: [10, 152, 234, 454], glow: [10, 152, 234, 454],
+};
+const lookSlug = name => name.toLowerCase().replace(/ /g, '-');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------------------------------------------------------------------------------------------
+// State, the same fields the page keeps
+
+const S = { stage: 'start', source: null, points: null, detectedTone: null, look: null, tab: 'looks', preset: null,
+  thumbs: [], naturalLip: '', noFace: 'none', scanStep: 0, comparing: false, error: '', result: null };
+let baseCanvas = null, frame = 0, thumbTimer = 0, thumbsFor = '';
+
+const update = (key, patch) => {
+  S.preset = null;
+  S.look = { ...S.look, [key]: typeof patch === 'object' ? { ...S.look[key], ...patch } : patch };
+  refreshEditor();
+};
+
+function railDot(look, id) {
+  switch (id) {
+    case 'lips': return look.lips.mode === 'none' ? null : look.lips.color;
+    case 'eyes': return look.eyes.on ? look.eyes.color : null;
+    case 'lashes': return look.lashes.on ? look.lashes.mascara : null;
+    case 'skin': return look.skin.on ? SKIN_TONES[look.tone].hex : null;
+    case 'sculpt': return look.sculpt.on ? toneShades(SKIN_TONES[look.tone].hex).contour : null;
+    case 'glow': return look.glow.on ? look.glow.blush : null;
+    default: return null;
+  }
+}
+const strengthOf = (look, id) => ({ lips: look.lips.strength, eyes: look.eyes.strength, lashes: look.lashes.strength,
+  skin: look.skin.strength, sculpt: look.sculpt.strength, glow: look.glow.strength })[id] ?? 70;
+
+function zoomStyle(points, tab) {
+  const ids = ZOOM_POINTS[tab];
+  if (!ids) return 'transform: none';
+  const xs = ids.map(i => points[i].x), ys = ids.map(i => points[i].y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const fill = tab === 'lips' ? 0.5 : tab === 'eyes' || tab === 'lashes' ? 0.75 : 0.85;
+  const k = Math.max(1, Math.min(5, fill / Math.max(x1 - x0, (y1 - y0) * 0.8)));
+  const ox = Math.min(1 - 0.5 / k, Math.max(0.5 / k, cx)), oy = Math.min(1 - 0.5 / k, Math.max(0.5 / k, cy));
+  return `transform-origin: 0 0; transform: translate(${(0.5 - ox * k) * 100}%, ${(0.5 - oy * k) * 100}%) scale(${k})`;
+}
+
+const preview = () => {
+  const k = Math.min(1, PREVIEW_MAX / Math.max(S.source.width, S.source.height));
+  return { w: Math.round(S.source.width * k), h: Math.round(S.source.height * k) };
+};
+function drawBase(canvas, bitmap, width, height) {
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+}
+const encode = (canvas, type = 'image/jpeg', quality = 0.92) =>
+  new Promise((ok, no) => canvas.toBlob(b => (b ? ok(b) : no(new Error('encode'))), type, quality));
+
+// ---------------------------------------------------------------------------------------------
+// Opening a photo
+
+async function choose(file) {
+  if (!file) return;
+  S.error = '';
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  } catch {
+    S.error = 'We could not open that photo. Try a JPG or PNG.';
+    render(); return;
+  } finally {
+    $('file').value = ''; $('selfie').value = '';
+  }
+  // The long side at most 4096 px, so a 48-megapixel photo does not become a 48-megapixel canvas.
+  const k = Math.min(1, 4096 / Math.max(bitmap.width, bitmap.height));
+  S.source = { bitmap, width: Math.round(bitmap.width * k), height: Math.round(bitmap.height * k) };
+  S.result = null; S.stage = 'scan'; S.scanStep = 0; render();
+  try {
+    const kk = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
+    const work = document.createElement('canvas');
+    drawBase(work, bitmap, Math.round(bitmap.width * kk), Math.round(bitmap.height * kk));
+    await loadLandmarker();
+    const found = await detectFace(work);
+    if (!found.ok) { S.noFace = found.reason; S.stage = 'noface'; render(); return; }
+    S.scanStep = 1; render();
+    const tone = detectSkinTone(work, found.points);
+    S.scanStep = 2; render();
+    const lip = detectLipColor(work, found.points);
+    S.points = found.points; S.detectedTone = tone.index;
+    S.look = defaultLook(tone.index, lip);
+    S.naturalLip = lip; S.preset = null; S.thumbs = []; thumbsFor = '';
+    S.scanStep = 3;
+    const p = preview();
+    baseCanvas = document.createElement('canvas');
+    drawBase(baseCanvas, S.source.bitmap, p.w, p.h);
+    S.stage = 'tone'; render();
+  } catch {
+    S.noFace = 'load'; S.stage = 'noface'; render();
+  }
+}
+
+function paint() {
+  const canvas = app.querySelector('canvas[data-preview]');
+  if (!canvas || !baseCanvas || !S.points || !S.look) return;
+  cancelAnimationFrame(frame);
+  frame = requestAnimationFrame(() => {
+    canvas.width = baseCanvas.width; canvas.height = baseCanvas.height;
+    canvas.getContext('2d').drawImage(baseCanvas, 0, 0);
+    if (!S.comparing && S.stage === 'edit') renderLook(canvas, S.points, S.look);
+  });
+}
+
+// The ready-made looks on the person's own face, one per tick, cropped to the face. As on the site.
+function startThumbs() {
+  const key = `${S.look.tone}|${S.naturalLip}`;
+  if (thumbsFor === key) return;
+  thumbsFor = key; clearTimeout(thumbTimer);
+  const k = Math.min(1, 520 / Math.max(S.source.width, S.source.height));
+  const w = Math.round(S.source.width * k), h = Math.round(S.source.height * k);
+  const xs = S.points.map(p => p.x * w), ys = S.points.map(p => p.y * h);
+  const fx = Math.min(...xs), fy = Math.min(...ys), fw = Math.max(...xs) - fx, fh = Math.max(...ys) - fy;
+  const size = Math.max(fw, fh) * 1.25;
+  const base = defaultLook(S.look.tone, S.naturalLip || S.look.lips.color);
+  const out = [];
+  const step = () => {
+    if (S.stage !== 'edit' || thumbsFor !== key) return;
+    const c = document.createElement('canvas');
+    drawBase(c, S.source.bitmap, w, h);
+    renderLook(c, S.points, LOOK_PRESETS[out.length].make(base));
+    const t = document.createElement('canvas'); t.width = 144; t.height = 144;
+    t.getContext('2d').drawImage(c, fx + fw / 2 - size / 2, fy + fh / 2 - size / 2, size, size, 0, 0, 144, 144);
+    out.push(t.toDataURL('image/jpeg', 0.85));
+    S.thumbs = out.slice();
+    const img = app.querySelector(`.mk-look[data-i="${out.length - 1}"] img`);
+    if (img) img.src = out[out.length - 1];
+    if (out.length < LOOK_PRESETS.length) thumbTimer = setTimeout(step, 0);
+  };
+  thumbTimer = setTimeout(step, 50);
+}
+
+async function finish() {
+  const btn = app.querySelector('.mk-done');
+  if (btn) { btn.disabled = true; btn.innerHTML = `${icon('loader-circle', 18, 'et-spin')} Finishing…`; }
+  try {
+    const full = document.createElement('canvas');
+    drawBase(full, S.source.bitmap, S.source.width, S.source.height);
+    const before = URL.createObjectURL(await encode(full, 'image/jpeg', 0.9));
+    renderLook(full, S.points, S.look);
+    const blob = await encode(full);
+    S.result = { blob, url: URL.createObjectURL(blob), before };
+    S.stage = 'done'; render();
+  } catch {
+    S.error = 'The photo could not be saved. Try again.'; render();
+  }
+}
+
+function reset() {
+  Object.assign(S, { stage: 'start', source: null, points: null, look: null, result: null, error: '' });
+  render();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Rendering, stage by stage
+
+const errorHtml = () => S.error ? `<p class="et-error" role="alert">${icon('triangle-alert')} ${esc(S.error)}</p>` : '';
+const lookName = () => (S.preset === null ? 'Your look' : LOOK_PRESETS[S.preset].name);
+
+function named(list, value, label, kind) {
+  return `<div class="mk-named" role="radiogroup" aria-label="${esc(label)}">${list.map(([c, n]) =>
+    `<button type="button" role="radio" aria-checked="${value === c}" class="mk-named-item${value === c ? ' is-on' : ''}"
+       data-named="${kind}" data-c="${c}" data-focus-key="named:${kind}:${c}">
+      <span class="mk-named-dot" style="background:${c}"></span><span>${esc(n)}</span></button>`).join('')}</div>`;
+}
+const chip = (on, act, text) =>
+  `<button type="button" class="mk-chip${on ? ' is-on' : ''}" aria-pressed="${on}" data-chip="${act}" data-focus-key="chip:${act}">${text}</button>`;
+function segmented(label, value, options, kind) {
+  const at = Math.max(0, options.findIndex(o => o.id === value));
+  return `<div class="seg" role="group" aria-label="${esc(label)}" style="--seg-n:${options.length};--seg-i:${at}">
+    <span class="seg-thumb" aria-hidden="true"></span>${options.map(o =>
+    `<button type="button" class="seg-btn" aria-pressed="${value === o.id}" data-seg="${kind}" data-v="${o.id}" data-focus-key="seg:${kind}:${o.id}">
+       <span class="seg-long">${esc(o.long)}</span>${o.short ? `<span class="seg-short">${esc(o.short)}</span>` : ''}</button>`).join('')}</div>`;
+}
+
+function partBody() {
+  const L = S.look, tab = S.tab;
+  const shades = toneShades(SKIN_TONES[L.tone].hex);
+  let h = '';
+  if (tab === 'looks') h = '<p class="mk-muted">Tap a look, then move any dial. Choose a part of the face to change its shades, and the photo zooms to it.</p>';
+  if (tab === 'lips') h = segmented('Lips', L.lips.mode, [{ id: 'none', long: 'None' }, { id: 'tint', long: 'Sheer tint', short: 'Tint' },
+      { id: 'bold', long: 'Bold lipstick', short: 'Bold' }], 'lips-mode')
+    + (L.lips.mode === 'bold' ? `<div class="mk-chips">${chip(L.lips.liner, 'lips.liner', 'Liner')}${chip(L.lips.gloss, 'lips.gloss', 'Gloss')}</div>` : '')
+    + named(LIP_NAMED, L.lips.mode === 'none' ? '' : L.lips.color, 'Lip shade', 'lip')
+    + (L.lips.mode === 'bold' ? `<label class="mk-range"><span data-plump-label>Fuller lips ${L.lips.plump}%</span>
+        <input type="range" min="0" max="7" step="1" value="${L.lips.plump}" data-plump></label>` : '');
+  if (tab === 'eyes') h = `<div class="mk-chips">${chip(L.eyes.on, 'eyes.on', L.eyes.on ? 'On' : 'Off')}${chip(L.eyes.crease, 'eyes.crease', 'Crease')}
+      ${chip(L.eyes.wing, 'eyes.wing', 'Wing')}${chip(L.eyes.lashLine, 'eyes.lashLine', 'Lash line')}${chip(L.eyes.oneEye, 'eyes.oneEye', `${icon('eye', 14)} One eye`)}</div>`
+    + named(EYE_NAMED, L.eyes.on ? L.eyes.color : '', 'Eyeshadow shade', 'eye');
+  if (tab === 'lashes') h = `<div class="mk-chips">${chip(L.lashes.on, 'lashes.on', L.lashes.on ? 'On' : 'Off')}${chip(L.lashes.liner, 'lashes.liner', 'Eyeliner')}
+      ${chip(L.lashes.falseLashes, 'lashes.falseLashes', 'False lashes')}${chip(L.lashes.brows, 'lashes.brows', 'Fill brows')}</div>
+      <p class="mk-label">Mascara</p>${named(MASCARA_NAMED, L.lashes.on ? L.lashes.mascara : '', 'Mascara', 'mascara')}`
+    + (L.lashes.brows ? `<p class="mk-label">Brows</p>${named(BROW_NAMED, L.lashes.on ? L.lashes.brow : '', 'Brows', 'brow')}` : '');
+  if (tab === 'skin') h = `<p class="mk-label">Your skin tone, matched from the photo</p>`
+    + named(SKIN_TONES.map((t, i) => [t.hex, `${i + 1} ${t.name}`]), SKIN_TONES[L.tone].hex, 'Skin tone', 'tone')
+    + `<div class="mk-chips">${chip(L.skin.on, 'skin.on', L.skin.on ? 'Foundation on' : 'Foundation off')}${chip(L.skin.underEye, 'skin.underEye', 'Under eyes')}
+      ${chip(L.skin.blemishes, 'skin.blemishes', 'Blemishes')}</div>`
+    + segmented('Foundation coverage', L.skin.coverage, [{ id: 'sheer', long: 'Sheer BB', short: 'Sheer' }, { id: 'light', long: 'Light' },
+      { id: 'medium', long: 'Medium' }], 'coverage');
+  if (tab === 'sculpt') h = `<div class="mk-chips">${chip(L.sculpt.on, 'sculpt.on', L.sculpt.on ? 'On' : 'Off')}${chip(L.sculpt.contour, 'sculpt.contour', 'Contour')}
+      ${chip(L.sculpt.bronzer, 'sculpt.bronzer', 'Bronzer')}${chip(L.sculpt.highlighter, 'sculpt.highlighter', 'Highlighter')}</div>
+      <p class="mk-matched">Matched to your tone: <span style="background:${shades.contour}"></span> contour <span style="background:${shades.bronzer}"></span> bronzer
+      <span style="background:${shades.highlighter}"></span> highlight</p>`;
+  if (tab === 'glow') h = `<div class="mk-chips">${chip(L.glow.on, 'glow.on', L.glow.on ? 'Blush on' : 'Blush off')}${chip(L.glow.healthyGlow, 'glow.healthyGlow', 'Healthy glow')}
+      ${chip(L.glow.tan, 'glow.tan', 'Light tan')}</div>` + named(BLUSH_NAMED, L.glow.on ? L.glow.blush : '', 'Blush shade', 'blush');
+  return h + `<div class="mk-sheet-actions">
+      <button type="button" class="et-btn et-btn-primary mk-done" data-act="finish">${icon('check', 18)} Done</button>
+      <button type="button" class="mk-link mk-another" data-act="reset">${icon('image-plus', 14)} Another photo</button>
+    </div>${errorHtml()}`;
+}
+
+function editorHtml() {
+  const p = preview(), L = S.look;
+  return `<section class="et-panel mk-studio" aria-labelledby="mk-edit">
+    <h2 id="mk-edit">Build your look</h2>
+    <p class="mk-live">${icon('lock', 15)} Nothing is uploaded. Your photo stays on this device and the makeup is drawn here, live, as you move a dial.</p>
+    <div class="mk-bench">
+      <div class="mk-frame" style="aspect-ratio:${p.w} / ${p.h}">
+        <canvas data-preview class="mk-studio-canvas" style="${zoomStyle(S.points, S.tab)}" aria-label="Your photo with the makeup"></canvas>
+        <div class="mk-top">
+          <button type="button" class="mk-glass" data-act="back" aria-label="Back to skin tone">${icon('arrow-left', 18)}</button>
+          <span class="mk-glass mk-glass-label" aria-live="polite" data-look-label>${esc(lookName())}</span>
+          <button type="button" class="mk-glass" data-act="restart" aria-label="Start the look over">${icon('undo-2', 18)}</button>
+        </div>
+        <button type="button" class="mk-glass mk-hold" data-hold aria-label="Hold to see your photo without makeup" aria-pressed="false">${icon('hand', 16)} Hold to see bare</button>
+      </div>
+      <div class="mk-rail">
+        <h3 class="mk-rail-title">${LOOK_PRESETS.length} looks</h3>
+        <p class="mk-muted mk-rail-note">A starting point, not a destination. Each one is only a set of the dials below.</p>
+        <div class="mk-looks" role="radiogroup" aria-label="Ready-made looks">${LOOK_PRESETS.map((pr, i) =>
+          `<button type="button" role="radio" aria-checked="${S.preset === i}" class="mk-look${S.preset === i ? ' is-on' : ''}" data-i="${i}">
+            <span class="mk-look-thumb"><img src="${S.thumbs[i] || `../.github/assets/looks/${lookSlug(pr.name)}.jpg`}" alt="" loading="lazy" decoding="async"></span>
+            <span class="mk-look-name">${esc(pr.name)}</span></button>`).join('')}</div>
+        <div class="mk-dials">${DIALS.map(d => {
+          const dot = railDot(L, d.id);
+          return `<div class="mk-dial"><label class="mk-dial-top" for="mk-dial-${d.id}">
+              <b>${dot ? `<span class="mk-dial-dot" style="background:${dot}" aria-hidden="true"></span>` : ''}${d.label}</b>
+              <span data-dial-value="${d.id}">${strengthOf(L, d.id)}</span></label>
+            <input id="mk-dial-${d.id}" type="range" min="10" max="100" value="${strengthOf(L, d.id)}" aria-label="${d.label} strength" data-dial="${d.id}"></div>`;
+        }).join('')}</div>
+        <div class="mk-parts" role="tablist" aria-label="Part of the face to change">${RAIL.map(r =>
+          `<button type="button" role="tab" aria-selected="${S.tab === r.id}" aria-controls="mk-part" class="mk-part${S.tab === r.id ? ' is-on' : ''}" data-tab="${r.id}">
+            ${icon(r.icon, 15)} ${r.id === 'looks' ? 'Whole face' : r.label}</button>`).join('')}</div>
+        <div class="mk-part-body" id="mk-part" role="tabpanel">${partBody()}</div>
       </div>
     </div>
-  </section>
+  </section>`;
+}
 
-  <section class="panel" aria-labelledby="looks-title">
-    <h2 class="section" id="looks-title">A look for the day you are having</h2>
-    <p class="muted" id="looksIntro"></p>
-    <ul class="grid" id="looks"></ul>
-  </section>
-
-  <footer>The engine behind <a href="https://cmein.com/makeup">cmein.com/makeup</a>.
-    Source: <a href="https://github.com/BarakBurger/cmein-makeup">github.com/BarakBurger/cmein-makeup</a>.</footer>
-</main>
-<script type="module">
-  // Loaded dynamically so a missing build is a message on the page, not a silent dead button.
-  let lib;
-  try {
-    lib = await import('../dist/index.js');
-  } catch (e) {
-    document.getElementById('status').textContent =
-      'The library is not built yet. Run npm install in the repository folder, then reload this page.';
-    throw e;
-  }
-  const { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, LOOK_PRESETS, SKIN_TONES } = lib;
-
-  const $ = id => document.getElementById(id);
-  const out = $('out'), status = $('status'), grid = $('looks');
-  let photo = null, points = null, base = null, current = -1, look = null;
-
-  // Shade names as cmein.com/makeup shows them; the values are the engine's own lists.
-  const NAMED = {
-    lip: [['#C98A80', 'Nude rose'], ['#B8656A', 'Dusty rose'], ['#B85F55', 'Terracotta rose'], ['#E07A5F', 'Coral'], ['#E9967A', 'Peach'], ['#A86B4F', 'Caramel'], ['#9C6B7E', 'Mauve'], ['#8E3B5A', 'Berry'], ['#9E3A32', 'Brick'], ['#A4161A', 'Cherry'], ['#6B2D4A', 'Plum'], ['#6E3B2E', 'Cocoa'], ['#D4A5A5', 'Soft pink'], ['#4A1C2C', 'Wine']],
-    eye: [['#B79A86', 'Taupe'], ['#8A5A3C', 'Bronze'], ['#D8BFA4', 'Champagne'], ['#C08A6A', 'Copper sand'], ['#7A5C8E', 'Plum'], ['#6B6A3E', 'Olive'], ['#2F3E5C', 'Navy'], ['#B76E5A', 'Rose gold'], ['#3A2A22', 'Espresso'], ['#8C7B8F', 'Lilac grey'], ['#5E5E66', 'Smoke'], ['#A0522D', 'Sienna']],
-    blush: [['#F4A6A0', 'Soft pink'], ['#E08A6E', 'Peach'], ['#E9967A', 'Apricot'], ['#D46A6A', 'Rose'], ['#C2566B', 'Berry'], ['#B5655A', 'Terracotta'], ['#A44A3F', 'Brick'], ['#8E3B46', 'Wine'], ['#D98C7A', 'Coral'], ['#F2B5A0', 'Shell'], ['#C47A5A', 'Bronze'], ['#7E2F3B', 'Plum']],
-    mascara: [['#111111', 'Black'], ['#1E1714', 'Brown black'], ['#3B2A22', 'Brown'], ['#2F3E5C', 'Navy']],
-    brow: [['#C9A675', 'Blonde'], ['#A47C52', 'Dark blonde'], ['#8C6A47', 'Light brown'], ['#6B4A33', 'Brown'], ['#3B2A22', 'Dark brown'], ['#22201F', 'Black'], ['#7A7A7A', 'Grey'], ['#8B3A1E', 'Auburn']],
-  };
-
-  const slug = name => name.toLowerCase().replace(/ /g, '-');
-  $('looksIntro').textContent = `${LOOK_PRESETS.length} ready-made looks, from a job interview to a wedding. ` +
-    'Choose a photo above, then tap a look to see it on your own face.';
-
-  // The same cards as cmein.com/makeup: the look on our model, its name and what it is for.
-  LOOK_PRESETS.forEach((p, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<button type="button" class="look" aria-pressed="false" data-i="${i}">
-      <img src="../.github/assets/looks/${slug(p.name)}.jpg" width="288" height="360" loading="lazy" alt="">
-      <b></b><small></small></button>`;
-    li.querySelector('b').textContent = p.name;
-    li.querySelector('small').textContent = p.note;
-    grid.append(li);
+// After a look change: everything that shows the look, without rebuilding the dial being dragged.
+function refreshEditor(rebuildParts = true) {
+  if (S.stage !== 'edit') return;
+  paint();
+  const L = S.look;
+  app.querySelector('[data-look-label]').textContent = S.comparing ? 'Bare' : lookName();
+  app.querySelectorAll('.mk-look').forEach(b => {
+    const on = Number(b.dataset.i) === S.preset;
+    b.classList.toggle('is-on', on); b.setAttribute('aria-checked', String(on));
   });
-
-  // A preset sets the starting point; every control below edits the same look from there.
-  function show(i) {
-    current = i;
-    look = i >= 0 ? LOOK_PRESETS[i].make(base) : null;
-    $('lookName').textContent = i >= 0 ? LOOK_PRESETS[i].name : 'Original';
-    $('lookNote').textContent = i >= 0 ? LOOK_PRESETS[i].note : 'Pick a look below, or adjust anything by hand.';
-    for (const b of grid.querySelectorAll('.look')) b.setAttribute('aria-pressed', String(Number(b.dataset.i) === i));
-    paint(); buildControls();
+  for (const d of DIALS) {
+    const v = strengthOf(L, d.id), input = app.querySelector(`[data-dial="${d.id}"]`);
+    if (document.activeElement !== input) input.value = v;
+    app.querySelector(`[data-dial-value="${d.id}"]`).textContent = v;
+    const dot = railDot(L, d.id);
+    input.closest('.mk-dial').querySelector('b').innerHTML =
+      (dot ? `<span class="mk-dial-dot" style="background:${dot}" aria-hidden="true"></span>` : '') + d.label;
   }
-
-  function paint() {
-    const k = Math.min(1, 1400 / Math.max(photo.width, photo.height));
-    out.width = Math.round(photo.width * k); out.height = Math.round(photo.height * k);
-    out.getContext('2d').drawImage(photo, 0, 0, out.width, out.height);
-    if (look) renderLook(out, points, look);
-  }
-
-  // Any hand edit: start from the current look (or the person's defaults) and mark it custom.
-  function edit(part, patch, rebuild = true) {
-    look = look ? structuredClone(look) : structuredClone(base);
-    if (part === 'tone') look.tone = patch; else look[part] = { ...look[part], ...patch };
-    current = -1;
-    $('lookName').textContent = 'Your look';
-    $('lookNote').textContent = 'Adjusted by hand.';
-    for (const b of grid.querySelectorAll('.look')) b.setAttribute('aria-pressed', 'false');
-    paint();
-    if (!rebuild) return;
+  if (rebuildParts) {
     // Rebuilt so every pressed state is right; focus goes back to the control that was used.
-    const k = document.activeElement?.dataset?.k;
-    buildControls();
-    if (k) document.querySelector(`[data-k="${CSS.escape(k)}"]`)?.focus();
+    const body = $('mk-part'), k = document.activeElement?.dataset?.focusKey;
+    body.innerHTML = partBody();
+    // The chosen shade may sit past the edge of its row; scroll the row only, never the page.
+    body.querySelectorAll('.mk-named').forEach(row => {
+      const on = row.querySelector('.is-on');
+      if (on) row.scrollLeft = on.offsetLeft - row.clientWidth / 2 + on.clientWidth / 2;
+    });
+    if (k) body.querySelector(`[data-focus-key="${CSS.escape(k)}"]`)?.focus();
   }
+  startThumbs();
+}
 
-  const keyed = (node, k) => { node.dataset.k = k; return node; };
-  const el = (tag, props = {}, kids = []) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
-  const check = (label, part, key) => { const i = el('input', { type: 'checkbox', checked: !!cur()[part][key], onchange: e => edit(part, { [key]: e.target.checked }) });
-    i.dataset.k = `${part}.${key}`; return el('label', { className: 'ctl' }, [label, i]); };
-  // A slider repaints as it moves but is not rebuilt, or the drag would stop under the finger.
-  const range = (label, part, key, min, max, unit = '') => {
-    const text = document.createTextNode(`${label} ${cur()[part][key]}${unit}`);
-    const input = el('input', { type: 'range', min, max, step: 1, value: cur()[part][key],
-      oninput: e => { edit(part, { [key]: Number(e.target.value) }, false); text.data = `${label} ${e.target.value}${unit}`; } });
-    return el('label', { className: 'ctl' }, [text, input]);
-  };
-  const swatches = (label, list, part, key) => el('div', {}, [el('div', { className: 'label', textContent: label }),
-    el('div', { className: 'swatches', role: 'group', ariaLabel: label }, list.map(([hex, name]) =>
-      keyed(el('button', { type: 'button', className: 'swatch', title: name, ariaLabel: name, style: `background:${hex}`,
-        ariaPressed: String(cur()[part][key].toLowerCase() === hex.toLowerCase()), onclick: () => edit(part, { [key]: hex }) }), `${part}.${key}.${hex}`)))]);
-  const seg = (label, part, key, options) => el('div', { className: 'ctl' }, [label,
-    el('div', { className: 'seg', role: 'group', ariaLabel: label }, options.map(([val, text]) =>
-      keyed(el('button', { type: 'button', textContent: text, ariaPressed: String(cur()[part][key] === val), onclick: () => edit(part, { [key]: val }) }), `${part}.${key}.${val}`)))]);
-  const cur = () => look ?? base;
-  const open = new Set(['lips']);
-
-  function section(id, title, kids) {
-    const d = el('details', { open: open.has(id) }, [el('summary', { textContent: title }), ...kids]);
-    d.addEventListener('toggle', () => d.open ? open.add(id) : open.delete(id));
-    return d;
+function render() {
+  const s = S.stage;
+  if (s === 'start') {
+    app.innerHTML = `<section class="et-panel mk-start" aria-labelledby="mk-start">
+      <h2 id="mk-start" class="et-visually-hidden">Choose a photo</h2>
+      <button type="button" class="et-drop" data-act="pick">${icon('upload', 30)}<strong>Choose a photo</strong>
+        <span>One face, looking toward the camera. Or drop it here.</span></button>
+      <button type="button" class="et-btn mk-selfie" data-act="camera">${icon('camera', 18)} Open camera</button>
+      <ul class="mk-promises">
+        <li>${icon('lock', 15)} Your photo never leaves your device</li>
+        <li>${icon('check', 15)} No account, no daily limit</li>
+      </ul>${errorHtml()}</section>`;
+  } else if (s === 'scan') {
+    app.innerHTML = `<section class="et-panel" aria-labelledby="mk-scan" aria-live="polite">
+      <h2 id="mk-scan">Getting ready</h2>
+      <ul class="mk-steps">${['Finding your face', 'Reading your skin tone', 'Mapping lips, eyes and brows'].map((t, i) =>
+        `<li class="${S.scanStep > i ? 'is-done' : S.scanStep === i ? 'is-now' : ''}">${S.scanStep > i ? icon('check', 16)
+          : S.scanStep === i ? icon('loader-circle', 16, 'et-spin') : '<span class="mk-dot" aria-hidden="true"></span>'} ${t}</li>`).join('')}</ul>
+      <p class="mk-muted">The first time takes a few seconds to load the face finder (3.7 MB). After that it is instant.</p></section>`;
+  } else if (s === 'noface') {
+    app.innerHTML = `<section class="et-panel" aria-labelledby="mk-noface"><h2 id="mk-noface">${NO_FACE[S.noFace]}</h2>
+      ${S.noFace !== 'load' ? `<p>This works best with:</p><ul class="mk-tips"><li>One person in the photo</li>
+        <li>The face toward the camera, not in profile</li><li>The face filling at least a fifth of the photo</li><li>Daylight, no sunglasses</li></ul>` : ''}
+      <div class="et-actions">
+        <button type="button" class="et-btn et-btn-primary" data-act="pick">${icon('image-plus')} Choose another photo</button>
+        <button type="button" class="et-btn" data-act="camera">${icon('camera')} Open camera</button>
+      </div></section>`;
+  } else if (s === 'tone') {
+    const p = preview(), L = S.look;
+    app.innerHTML = `<section class="et-panel mk-editor" aria-labelledby="mk-tone">
+      <h2 id="mk-tone" class="et-visually-hidden">Your skin tone</h2>
+      <div class="mk-stage"><canvas data-preview class="mk-canvas" style="aspect-ratio:${p.w} / ${p.h}" aria-label="Your photo"></canvas></div>
+      <div class="mk-panel">
+        <h3>We matched your skin to tone ${L.tone + 1}</h3>
+        <p class="mk-muted">${esc(SKIN_TONES[L.tone].name)}. Not right? Pick yours. Foundation, concealer and contour follow it.</p>
+        <div class="mk-tones" role="radiogroup" aria-label="Skin tone">${SKIN_TONES.map((t, i) =>
+          `<button type="button" role="radio" aria-checked="${L.tone === i}" aria-label="Tone ${i + 1}, ${esc(t.name)}"
+            class="mk-swatch mk-tone${L.tone === i ? ' is-on' : ''}" style="background:${t.hex}" data-tone="${i}">
+            ${S.detectedTone === i ? '<span class="mk-auto">auto</span>' : ''}</button>`).join('')}</div>
+        <div class="et-actions">
+          <button type="button" class="et-btn et-btn-primary" data-act="start">Looks right, start</button>
+          <button type="button" class="et-btn" data-act="reset">Another photo</button>
+        </div>
+      </div></section>`;
+    paint();
+  } else if (s === 'edit') {
+    app.innerHTML = editorHtml();
+    paint(); startThumbs();
+  } else if (s === 'done') {
+    const p = S.source;
+    app.innerHTML = `<section class="et-panel" aria-labelledby="mk-done" aria-live="polite">
+      <h2 id="mk-done">Your look</h2>
+      <div class="mk-result">
+        <div class="pc" style="--pc-pos:50%;aspect-ratio:${p.width} / ${p.height}">
+          <img class="pc-img" src="${S.result.url}" alt="Your photo with the makeup">
+          <div class="pc-before" aria-hidden="true"><img class="pc-img" src="${S.result.before}" alt=""></div>
+          <span class="pc-tag is-left">Bare</span><span class="pc-tag is-right">${esc(lookName())}</span>
+          <span class="pc-line" aria-hidden="true"></span><span class="pc-knob" aria-hidden="true"></span>
+          <input class="pc-range" type="range" min="0" max="100" value="50" aria-label="Drag to compare bare and ${esc(lookName().toLowerCase())}">
+        </div>
+      </div>
+      <div class="et-actions">
+        <a class="et-btn et-btn-primary" href="${S.result.url}" download="cmein-makeup.jpg">${icon('download', 18)} Download</a>
+        <button type="button" class="et-btn" data-act="keep">Keep editing</button>
+        <button type="button" class="et-btn" data-act="reset">${icon('image-plus')} Another photo</button>
+      </div>
+      <div class="mk-ai">
+        <div>
+          <strong>${icon('sparkles')} Want it to look like real makeup?</strong>
+          <p class="mk-muted">CMeIn has an AI version: same look, same shades, redrawn as makeup on skin while your face stays yours.
+            It runs on CMeIn, so it is not part of this library.</p>
+        </div>
+        <a class="et-btn" href="https://cmein.com/makeup" target="_blank" rel="noopener">${icon('sparkles')} Try it with AI on CMeIn</a>
+      </div></section>`;
+    const pc = app.querySelector('.pc'), range = pc.querySelector('.pc-range');
+    const setPos = v => pc.style.setProperty('--pc-pos', `${v}%`);
+    let drag = false;
+    const moveTo = x => { const r = pc.getBoundingClientRect(); setPos(Math.max(0, Math.min(100, ((x - r.left) / r.width) * 100))); };
+    range.addEventListener('input', () => setPos(range.value));
+    range.addEventListener('pointerdown', e => { drag = true; moveTo(e.clientX); });
+    range.addEventListener('pointermove', e => { if (drag) moveTo(e.clientX); });
+    ['pointerup', 'pointercancel'].forEach(t => range.addEventListener(t, () => { drag = false; }));
   }
+}
 
-  function buildControls() {
-    const c = cur();
-    $('controls').replaceChildren(
-      section('lips', 'Lips', [
-        seg('Lipstick', 'lips', 'mode', [['none', 'None'], ['tint', 'Tint'], ['bold', 'Bold']]),
-        swatches('Shade', NAMED.lip, 'lips', 'color'),
-        check('Liner', 'lips', 'liner'), check('Gloss', 'lips', 'gloss'),
-        range('Fuller lips', 'lips', 'plump', 0, 7, '%'), range('Strength', 'lips', 'strength', 10, 100),
-      ]),
-      section('eyes', 'Eyes', [
-        check('Eyeshadow', 'eyes', 'on'), swatches('Shade', NAMED.eye, 'eyes', 'color'),
-        check('Crease', 'eyes', 'crease'), check('Wing', 'eyes', 'wing'), check('Lash line', 'eyes', 'lashLine'),
-        range('Strength', 'eyes', 'strength', 10, 100),
-      ]),
-      section('lashes', 'Lashes and brows', [
-        check('Lashes and brows', 'lashes', 'on'), swatches('Mascara', NAMED.mascara, 'lashes', 'mascara'),
-        check('Liner', 'lashes', 'liner'), check('False lashes', 'lashes', 'falseLashes'),
-        check('Brows', 'lashes', 'brows'), swatches('Brow shade', NAMED.brow, 'lashes', 'brow'),
-        range('Strength', 'lashes', 'strength', 10, 100),
-      ]),
-      section('skin', 'Skin', [
-        check('Foundation', 'skin', 'on'),
-        seg('Coverage', 'skin', 'coverage', [['sheer', 'Sheer'], ['light', 'Light'], ['medium', 'Medium']]),
-        el('div', {}, [el('div', { className: 'label', textContent: 'Skin tone' }),
-          el('div', { className: 'swatches', role: 'group', ariaLabel: 'Skin tone' }, SKIN_TONES.map((t, i) =>
-            el('button', { type: 'button', className: 'swatch', title: t.name, ariaLabel: t.name, style: `background:${t.hex}`,
-              ariaPressed: String(c.tone === i), onclick: () => edit('tone', i) })))]),
-        check('Under-eye', 'skin', 'underEye'), check('Blemishes', 'skin', 'blemishes'),
-        range('Strength', 'skin', 'strength', 10, 100),
-      ]),
-      section('sculpt', 'Sculpt', [
-        check('Sculpt', 'sculpt', 'on'), check('Contour', 'sculpt', 'contour'), check('Bronzer', 'sculpt', 'bronzer'),
-        check('Highlighter', 'sculpt', 'highlighter'), range('Strength', 'sculpt', 'strength', 10, 100),
-      ]),
-      section('glow', 'Blush and glow', [
-        check('Blush', 'glow', 'on'), swatches('Shade', NAMED.blush, 'glow', 'blush'),
-        check('Healthy glow', 'glow', 'healthyGlow'), check('Tan', 'glow', 'tan'),
-        range('Strength', 'glow', 'strength', 10, 100),
-      ]),
-    );
+// ---------------------------------------------------------------------------------------------
+// Events, delegated so the markup can be rebuilt freely
+
+$('file').addEventListener('change', e => choose(e.target.files?.[0]));
+$('selfie').addEventListener('change', e => choose(e.target.files?.[0]));
+
+app.addEventListener('dragover', e => { if (e.target.closest('.et-drop')) e.preventDefault(); });
+app.addEventListener('drop', e => { if (e.target.closest('.et-drop')) { e.preventDefault(); choose(e.dataTransfer.files?.[0]); } });
+
+app.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'pick') return $('file').click();
+  if (act === 'camera') return openCamera();
+  if (act === 'reset') return reset();
+  if (act === 'start') { S.tab = 'looks'; S.stage = 'edit'; return render(); }
+  if (act === 'back') { S.stage = 'tone'; return render(); }
+  if (act === 'restart') { S.look = defaultLook(S.look.tone, S.look.lips.color); S.preset = null; return refreshEditor(); }
+  if (act === 'finish') return finish();
+  if (act === 'keep') { S.stage = 'edit'; return render(); }
+  if (t.dataset.tone !== undefined) { S.look = { ...S.look, tone: Number(t.dataset.tone) }; return render(); }
+  if (t.classList.contains('mk-look')) {
+    const i = Number(t.dataset.i);
+    S.look = LOOK_PRESETS[i].make(defaultLook(S.look.tone, S.naturalLip || S.look.lips.color));
+    S.preset = i; return refreshEditor();
   }
+  if (t.dataset.tab) {
+    S.tab = t.dataset.tab;
+    app.querySelector('canvas[data-preview]').setAttribute('style', zoomStyle(S.points, S.tab));
+    app.querySelectorAll('.mk-part').forEach(b => { const on = b.dataset.tab === S.tab; b.classList.toggle('is-on', on); b.setAttribute('aria-selected', String(on)); });
+    $('mk-part').innerHTML = partBody(); return;
+  }
+  if (t.dataset.chip) {
+    const [part, key] = t.dataset.chip.split('.');
+    const patch = { [key]: !S.look[part][key] };
+    if (key !== 'on' && part !== 'lips') patch.on = true;
+    return update(part, patch);
+  }
+  if (t.dataset.seg === 'lips-mode') return update('lips', { mode: t.dataset.v });
+  if (t.dataset.seg === 'coverage') return update('skin', { coverage: t.dataset.v, on: true });
+  if (t.dataset.named) {
+    const c = t.dataset.c, kind = t.dataset.named;
+    if (kind === 'lip') return update('lips', { color: c, mode: S.look.lips.mode === 'none' ? 'tint' : S.look.lips.mode });
+    if (kind === 'eye') return update('eyes', { color: c, on: true });
+    if (kind === 'mascara') return update('lashes', { mascara: c, on: true });
+    if (kind === 'brow') return update('lashes', { brow: c, on: true });
+    if (kind === 'blush') return update('glow', { blush: c, on: true });
+    if (kind === 'tone') return update('tone', SKIN_TONES.findIndex(x => x.hex === c));
+  }
+});
 
-  async function load(file) {
-    if (!file) return;
-    $('stage').classList.remove('on');
-    status.textContent = 'Finding the face…';
-    let found;
+// Dials and the fuller-lips slider repaint as they move, without being rebuilt under the thumb.
+app.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.dial) {
+    S.preset = null;
+    S.look = { ...S.look, [t.dataset.dial]: { ...S.look[t.dataset.dial], strength: Number(t.value) } };
+    return refreshEditor(false);
+  }
+  if (t.dataset.plump !== undefined) {
+    S.preset = null;
+    S.look = { ...S.look, lips: { ...S.look.lips, plump: Number(t.value) } };
+    app.querySelector('[data-plump-label]').textContent = `Fuller lips ${t.value}%`;
+    return refreshEditor(false);
+  }
+});
+
+// Hold to see bare: pointer and keyboard, as on the site.
+const hold = on => {
+  const b = app.querySelector('[data-hold]'); if (!b || S.comparing === on) return;
+  S.comparing = on; b.setAttribute('aria-pressed', String(on));
+  app.querySelector('[data-look-label]').textContent = on ? 'Bare' : lookName();
+  paint();
+};
+app.addEventListener('pointerdown', e => { if (e.target.closest('[data-hold]')) hold(true); });
+['pointerup', 'pointercancel'].forEach(t => app.addEventListener(t, () => hold(false)));
+app.addEventListener('pointerout', e => { if (e.target.closest('[data-hold]')) hold(false); });
+app.addEventListener('keydown', e => { if (e.target.closest('[data-hold]') && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); hold(true); } });
+app.addEventListener('keyup', e => { if (e.target.closest('[data-hold]')) hold(false); });
+
+// ---------------------------------------------------------------------------------------------
+// The live camera, as on the site; falls back to the device's own camera app.
+
+async function openCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) return $('selfie').click();
+  let facing = 'user', stream = null;
+  const box = document.createElement('div');
+  box.className = 'cc'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', 'Camera');
+  box.innerHTML = `<video class="cc-video is-mirrored" playsinline muted autoplay></video>
+    <p class="cc-wait" role="status">Opening the camera…</p>
+    <p class="cc-hint" aria-hidden="true">Face the camera, in good light</p>
+    <div class="cc-bar">
+      <button type="button" class="cc-round" data-cc="close" aria-label="Close the camera">${icon('x', 22)}</button>
+      <button type="button" class="cc-shutter" data-cc="shoot" aria-label="Take the photo" disabled>${icon('camera', 26)}</button>
+      <button type="button" class="cc-round" data-cc="flip" aria-label="Switch camera" disabled>${icon('refresh-cw', 22)}</button>
+    </div>`;
+  document.body.append(box);
+  const video = box.querySelector('video'), shutter = box.querySelector('[data-cc="shoot"]');
+  const stop = () => stream?.getTracks().forEach(t => t.stop());
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const close = () => { stop(); box.remove(); document.removeEventListener('keydown', onKey); };
+  document.addEventListener('keydown', onKey);
+  const start = async () => {
     try {
-      photo = await createImageBitmap(file);
-      found = await detectFace(photo);
-    } catch (e) {
-      status.textContent = 'Could not read that photo or load the face model. Check the connection and try another photo.';
-      console.error(e);
-      return;
+      stop();
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false });
+      video.srcObject = stream; await video.play().catch(() => {});
+      video.classList.toggle('is-mirrored', facing === 'user');
+      box.querySelector('.cc-wait')?.remove(); shutter.disabled = false; shutter.focus();
+      const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+      box.querySelector('[data-cc="flip"]').disabled = devices.filter(d => d.kind === 'videoinput').length < 2;
+    } catch {
+      close();
+      S.error = 'We could not open the camera here. Allow camera access, or choose a photo instead.';
+      render(); $('selfie').click();
     }
-    if (!found.ok) {
-      status.textContent = { none: 'No face found in this photo.', several: 'Two faces of the same size: use a photo of one person.',
-        small: 'The face is too small in this photo.' }[found.reason];
-      return;
+  };
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-cc]'); if (!b) return;
+    if (b.dataset.cc === 'close') close();
+    if (b.dataset.cc === 'flip') { facing = facing === 'user' ? 'environment' : 'user'; start(); }
+    if (b.dataset.cc === 'shoot' && video.videoWidth) {
+      const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
+      c.getContext('2d').drawImage(video, 0, 0);
+      c.toBlob(b2 => { if (!b2) return; close(); choose(new File([b2], 'selfie.jpg', { type: 'image/jpeg' })); }, 'image/jpeg', 0.92);
     }
-    points = found.points;
-    base = defaultLook(detectSkinTone(photo, points).index, detectLipColor(photo, points));
-    status.textContent = 'Face found. Tap a look below.';
-    $('stage').classList.add('on');
-    show(current);
-  }
-
-  $('file').addEventListener('change', e => load(e.target.files[0]));
-  const drop = $('drop');
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); load(e.dataTransfer.files[0]); });
-  $('original').addEventListener('click', () => photo && show(-1));
-  grid.addEventListener('click', e => {
-    const b = e.target.closest('.look'); if (!b) return;
-    const i = Number(b.dataset.i);
-    if (!photo) { status.textContent = 'Choose a photo first, then tap a look.'; current = i; return; }
-    show(i); $('stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+  start();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Every ready-made look on our own model, as the site shows it under the tool.
+
+$('gallery-intro').textContent = `${LOOK_PRESETS.length} ready-made looks, from a job interview to a wedding. Tap one on your own photo, ` +
+  'then change any part of it. All of them are done on your phone, free, and the photo never leaves it.';
+$('gallery').innerHTML = LOOK_PRESETS.map(p => `<li><img src="../.github/assets/looks/${lookSlug(p.name)}.jpg" width="288" height="360"
+  loading="lazy" decoding="async" alt="${esc(p.name)}: ${esc(p.note)}"><b>${esc(p.name)}</b><span>${esc(p.note)}</span></li>`).join('');
+
+render();
 </script>
 </body>
 </html>

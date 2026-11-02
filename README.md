@@ -63,10 +63,14 @@ npm install
 python3 -m http.server 8000
 ```
 
-Open http://localhost:8000/demo/ and choose a photo. Start from any of the 17 looks, then adjust
-every product by hand, the same controls as cmein.com/makeup: lipstick mode and shade, liner, gloss
-and fuller lips; eyeshadow, crease and wing; mascara, false lashes and brows; foundation coverage
-and skin tone; contour, bronzer and highlighter; blush, glow and tan, each with its strength. The page has to be served over HTTP, not opened as a file, because it loads modules.
+Open http://localhost:8000/demo/. It is the cmein.com/makeup try-on ported to one page of plain
+JavaScript on this library, with the site's own stylesheets: choose a photo or open the camera, confirm
+the skin tone it matched, then start from any of the 17 looks (rendered on your own face) and adjust
+every product by hand, with the photo zooming to the part you are changing. Hold to see bare, then
+download the result. The AI version is not part of the library; the finished look links to it on
+cmein.com.
+
+The page has to be served over HTTP, not opened as a file, because it loads modules.
 
 ## The 17 looks
 
@@ -181,4 +185,5 @@ type Look = {
 ## License
 
 [MIT](LICENSE). The face model is Google's MediaPipe Face Landmarker, loaded at run time from
-Google's servers under its own Apache 2.0 license; it is not included in this repository.
+Google's servers under its own Apache 2.0 license; it is not included in this repository. The demo's
+icons are from [Lucide](https://lucide.dev) (ISC license).
