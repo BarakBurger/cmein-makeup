@@ -63,8 +63,10 @@ npm install
 python3 -m http.server 8000
 ```
 
-Open http://localhost:8000/demo/, choose a photo, and switch between the original and all 17
-looks. The page has to be served over HTTP, not opened as a file, because it loads modules.
+Open http://localhost:8000/demo/ and choose a photo. Start from any of the 17 looks, then adjust
+every product by hand, the same controls as cmein.com/makeup: lipstick mode and shade, liner, gloss
+and fuller lips; eyeshadow, crease and wing; mascara, false lashes and brows; foundation coverage
+and skin tone; contour, bronzer and highlighter; blush, glow and tan, each with its strength. The page has to be served over HTTP, not opened as a file, because it loads modules.
 
 ## The 17 looks
 

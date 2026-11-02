@@ -27,6 +27,7 @@
     .facts { list-style: none; padding: 0; margin: 16px 0 0; color: var(--muted); font-size: 15px; }
     .facts li::before { content: "✓"; color: var(--primary-text); margin-right: 8px; }
     #stage { display: none; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+    .side { max-height: none; }
     #stage.on { display: flex; }
     canvas { max-width: 100%; height: auto; border-radius: 14px; display: block; flex: 1 1 360px; min-width: 0; max-height: 70vh; object-fit: contain; }
     .side { flex: 0 1 300px; }
@@ -46,6 +47,23 @@
     .look:hover { background: var(--surface); }
     .look:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; }
     .look[aria-pressed="true"] { background: var(--surface); box-shadow: inset 0 0 0 2px var(--primary); }
+    .controls { margin-top: 16px; display: grid; gap: 8px; }
+    details { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0 12px; }
+    summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+    summary:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; border-radius: 8px; }
+    details[open] { padding-bottom: 12px; }
+    .ctl { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; font-size: 15px; }
+    .ctl input[type=range] { flex: 1; accent-color: var(--primary); min-height: 32px; }
+    .ctl input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--primary); }
+    .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 999px; overflow: hidden; }
+    .seg button { all: unset; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+    .seg button[aria-pressed="true"] { background: var(--primary); }
+    .seg button:focus-visible { outline: 2px solid var(--primary-text); outline-offset: -2px; }
+    .swatches { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+    .swatch { all: unset; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+    .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary-text); }
+    .swatch:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 3px; }
+    .label { color: var(--muted); font-size: 13px; margin-top: 6px; }
     footer { color: var(--muted); font-size: 14px; margin-top: 32px; }
     footer a { color: var(--primary-text); }
   </style>
@@ -72,8 +90,9 @@
       <canvas id="out" aria-label="Your photo with the chosen look"></canvas>
       <div class="side">
         <h2 id="lookName">Original</h2>
-        <p id="lookNote">Pick a look below.</p>
+        <p id="lookNote">Pick a look below, or adjust anything by hand.</p>
         <button type="button" class="btn" id="original">Show the original</button>
+        <div class="controls" id="controls" aria-label="Adjust the look by hand"></div>
       </div>
     </div>
   </section>
@@ -97,11 +116,20 @@
       'The library is not built yet. Run npm install in the repository folder, then reload this page.';
     throw e;
   }
-  const { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, LOOK_PRESETS } = lib;
+  const { detectFace, detectSkinTone, detectLipColor, defaultLook, renderLook, LOOK_PRESETS, SKIN_TONES } = lib;
 
   const $ = id => document.getElementById(id);
   const out = $('out'), status = $('status'), grid = $('looks');
-  let photo = null, points = null, base = null, current = -1;
+  let photo = null, points = null, base = null, current = -1, look = null;
+
+  // Shade names as cmein.com/makeup shows them; the values are the engine's own lists.
+  const NAMED = {
+    lip: [['#C98A80', 'Nude rose'], ['#B8656A', 'Dusty rose'], ['#B85F55', 'Terracotta rose'], ['#E07A5F', 'Coral'], ['#E9967A', 'Peach'], ['#A86B4F', 'Caramel'], ['#9C6B7E', 'Mauve'], ['#8E3B5A', 'Berry'], ['#9E3A32', 'Brick'], ['#A4161A', 'Cherry'], ['#6B2D4A', 'Plum'], ['#6E3B2E', 'Cocoa'], ['#D4A5A5', 'Soft pink'], ['#4A1C2C', 'Wine']],
+    eye: [['#B79A86', 'Taupe'], ['#8A5A3C', 'Bronze'], ['#D8BFA4', 'Champagne'], ['#C08A6A', 'Copper sand'], ['#7A5C8E', 'Plum'], ['#6B6A3E', 'Olive'], ['#2F3E5C', 'Navy'], ['#B76E5A', 'Rose gold'], ['#3A2A22', 'Espresso'], ['#8C7B8F', 'Lilac grey'], ['#5E5E66', 'Smoke'], ['#A0522D', 'Sienna']],
+    blush: [['#F4A6A0', 'Soft pink'], ['#E08A6E', 'Peach'], ['#E9967A', 'Apricot'], ['#D46A6A', 'Rose'], ['#C2566B', 'Berry'], ['#B5655A', 'Terracotta'], ['#A44A3F', 'Brick'], ['#8E3B46', 'Wine'], ['#D98C7A', 'Coral'], ['#F2B5A0', 'Shell'], ['#C47A5A', 'Bronze'], ['#7E2F3B', 'Plum']],
+    mascara: [['#111111', 'Black'], ['#1E1714', 'Brown black'], ['#3B2A22', 'Brown'], ['#2F3E5C', 'Navy']],
+    brow: [['#C9A675', 'Blonde'], ['#A47C52', 'Dark blonde'], ['#8C6A47', 'Light brown'], ['#6B4A33', 'Brown'], ['#3B2A22', 'Dark brown'], ['#22201F', 'Black'], ['#7A7A7A', 'Grey'], ['#8B3A1E', 'Auburn']],
+  };
 
   const slug = name => name.toLowerCase().replace(/ /g, '-');
   $('looksIntro').textContent = `${LOOK_PRESETS.length} ready-made looks, from a job interview to a wedding. ` +
@@ -118,15 +146,106 @@
     grid.append(li);
   });
 
+  // A preset sets the starting point; every control below edits the same look from there.
   function show(i) {
     current = i;
+    look = i >= 0 ? LOOK_PRESETS[i].make(base) : null;
+    $('lookName').textContent = i >= 0 ? LOOK_PRESETS[i].name : 'Original';
+    $('lookNote').textContent = i >= 0 ? LOOK_PRESETS[i].note : 'Pick a look below, or adjust anything by hand.';
+    for (const b of grid.querySelectorAll('.look')) b.setAttribute('aria-pressed', String(Number(b.dataset.i) === i));
+    paint(); buildControls();
+  }
+
+  function paint() {
     const k = Math.min(1, 1400 / Math.max(photo.width, photo.height));
     out.width = Math.round(photo.width * k); out.height = Math.round(photo.height * k);
     out.getContext('2d').drawImage(photo, 0, 0, out.width, out.height);
-    if (i >= 0) renderLook(out, points, LOOK_PRESETS[i].make(base));
-    $('lookName').textContent = i >= 0 ? LOOK_PRESETS[i].name : 'Original';
-    $('lookNote').textContent = i >= 0 ? LOOK_PRESETS[i].note : 'Pick a look below.';
-    for (const b of grid.querySelectorAll('.look')) b.setAttribute('aria-pressed', String(Number(b.dataset.i) === i));
+    if (look) renderLook(out, points, look);
+  }
+
+  // Any hand edit: start from the current look (or the person's defaults) and mark it custom.
+  function edit(part, patch, rebuild = true) {
+    look = look ? structuredClone(look) : structuredClone(base);
+    if (part === 'tone') look.tone = patch; else look[part] = { ...look[part], ...patch };
+    current = -1;
+    $('lookName').textContent = 'Your look';
+    $('lookNote').textContent = 'Adjusted by hand.';
+    for (const b of grid.querySelectorAll('.look')) b.setAttribute('aria-pressed', 'false');
+    paint();
+    if (!rebuild) return;
+    // Rebuilt so every pressed state is right; focus goes back to the control that was used.
+    const k = document.activeElement?.dataset?.k;
+    buildControls();
+    if (k) document.querySelector(`[data-k="${CSS.escape(k)}"]`)?.focus();
+  }
+
+  const keyed = (node, k) => { node.dataset.k = k; return node; };
+  const el = (tag, props = {}, kids = []) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
+  const check = (label, part, key) => { const i = el('input', { type: 'checkbox', checked: !!cur()[part][key], onchange: e => edit(part, { [key]: e.target.checked }) });
+    i.dataset.k = `${part}.${key}`; return el('label', { className: 'ctl' }, [label, i]); };
+  // A slider repaints as it moves but is not rebuilt, or the drag would stop under the finger.
+  const range = (label, part, key, min, max, unit = '') => {
+    const text = document.createTextNode(`${label} ${cur()[part][key]}${unit}`);
+    const input = el('input', { type: 'range', min, max, step: 1, value: cur()[part][key],
+      oninput: e => { edit(part, { [key]: Number(e.target.value) }, false); text.data = `${label} ${e.target.value}${unit}`; } });
+    return el('label', { className: 'ctl' }, [text, input]);
+  };
+  const swatches = (label, list, part, key) => el('div', {}, [el('div', { className: 'label', textContent: label }),
+    el('div', { className: 'swatches', role: 'group', ariaLabel: label }, list.map(([hex, name]) =>
+      keyed(el('button', { type: 'button', className: 'swatch', title: name, ariaLabel: name, style: `background:${hex}`,
+        ariaPressed: String(cur()[part][key].toLowerCase() === hex.toLowerCase()), onclick: () => edit(part, { [key]: hex }) }), `${part}.${key}.${hex}`)))]);
+  const seg = (label, part, key, options) => el('div', { className: 'ctl' }, [label,
+    el('div', { className: 'seg', role: 'group', ariaLabel: label }, options.map(([val, text]) =>
+      keyed(el('button', { type: 'button', textContent: text, ariaPressed: String(cur()[part][key] === val), onclick: () => edit(part, { [key]: val }) }), `${part}.${key}.${val}`)))]);
+  const cur = () => look ?? base;
+  const open = new Set(['lips']);
+
+  function section(id, title, kids) {
+    const d = el('details', { open: open.has(id) }, [el('summary', { textContent: title }), ...kids]);
+    d.addEventListener('toggle', () => d.open ? open.add(id) : open.delete(id));
+    return d;
+  }
+
+  function buildControls() {
+    const c = cur();
+    $('controls').replaceChildren(
+      section('lips', 'Lips', [
+        seg('Lipstick', 'lips', 'mode', [['none', 'None'], ['tint', 'Tint'], ['bold', 'Bold']]),
+        swatches('Shade', NAMED.lip, 'lips', 'color'),
+        check('Liner', 'lips', 'liner'), check('Gloss', 'lips', 'gloss'),
+        range('Fuller lips', 'lips', 'plump', 0, 7, '%'), range('Strength', 'lips', 'strength', 10, 100),
+      ]),
+      section('eyes', 'Eyes', [
+        check('Eyeshadow', 'eyes', 'on'), swatches('Shade', NAMED.eye, 'eyes', 'color'),
+        check('Crease', 'eyes', 'crease'), check('Wing', 'eyes', 'wing'), check('Lash line', 'eyes', 'lashLine'),
+        range('Strength', 'eyes', 'strength', 10, 100),
+      ]),
+      section('lashes', 'Lashes and brows', [
+        check('Lashes and brows', 'lashes', 'on'), swatches('Mascara', NAMED.mascara, 'lashes', 'mascara'),
+        check('Liner', 'lashes', 'liner'), check('False lashes', 'lashes', 'falseLashes'),
+        check('Brows', 'lashes', 'brows'), swatches('Brow shade', NAMED.brow, 'lashes', 'brow'),
+        range('Strength', 'lashes', 'strength', 10, 100),
+      ]),
+      section('skin', 'Skin', [
+        check('Foundation', 'skin', 'on'),
+        seg('Coverage', 'skin', 'coverage', [['sheer', 'Sheer'], ['light', 'Light'], ['medium', 'Medium']]),
+        el('div', {}, [el('div', { className: 'label', textContent: 'Skin tone' }),
+          el('div', { className: 'swatches', role: 'group', ariaLabel: 'Skin tone' }, SKIN_TONES.map((t, i) =>
+            el('button', { type: 'button', className: 'swatch', title: t.name, ariaLabel: t.name, style: `background:${t.hex}`,
+              ariaPressed: String(c.tone === i), onclick: () => edit('tone', i) })))]),
+        check('Under-eye', 'skin', 'underEye'), check('Blemishes', 'skin', 'blemishes'),
+        range('Strength', 'skin', 'strength', 10, 100),
+      ]),
+      section('sculpt', 'Sculpt', [
+        check('Sculpt', 'sculpt', 'on'), check('Contour', 'sculpt', 'contour'), check('Bronzer', 'sculpt', 'bronzer'),
+        check('Highlighter', 'sculpt', 'highlighter'), range('Strength', 'sculpt', 'strength', 10, 100),
+      ]),
+      section('glow', 'Blush and glow', [
+        check('Blush', 'glow', 'on'), swatches('Shade', NAMED.blush, 'glow', 'blush'),
+        check('Healthy glow', 'glow', 'healthyGlow'), check('Tan', 'glow', 'tan'),
+        range('Strength', 'glow', 'strength', 10, 100),
+      ]),
+    );
   }
 
   async function load(file) {
